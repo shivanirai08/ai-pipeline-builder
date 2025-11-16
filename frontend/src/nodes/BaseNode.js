@@ -3,8 +3,12 @@
 
 import { useState } from 'react';
 import { Handle, Position } from 'reactflow';
+import { Trash2 } from 'lucide-react';
+import { useStore } from '../store';
 
-export const BaseNode = ({ id, data, config }) => {
+export const BaseNode = ({ id, data, config, selected }) => {
+  const onNodesChange = useStore((state) => state.onNodesChange);
+
   // Initialize state for all fields defined in config
   const [fieldValues, setFieldValues] = useState(() => {
     const initialState = {};
@@ -13,6 +17,11 @@ export const BaseNode = ({ id, data, config }) => {
     });
     return initialState;
   });
+
+  // Delete node handler
+  const handleDelete = () => {
+    onNodesChange([{ id, type: 'remove' }]);
+  };
 
   // Handle field value changes
   const handleFieldChange = (fieldName, value) => {
@@ -26,6 +35,8 @@ export const BaseNode = ({ id, data, config }) => {
   const renderField = (field) => {
     const value = fieldValues[field.name];
 
+    const baseInputClass = "w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-[#F9FAFB] text-[#111827] placeholder-[#6B7280] focus:border-[#3B82F6] focus:outline-none transition-colors";
+
     switch (field.type) {
       case 'text':
         return (
@@ -34,7 +45,7 @@ export const BaseNode = ({ id, data, config }) => {
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             placeholder={field.placeholder}
-            style={{ width: '100%', ...field.style }}
+            className={baseInputClass}
           />
         );
 
@@ -43,7 +54,7 @@ export const BaseNode = ({ id, data, config }) => {
           <select
             value={value}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
-            style={{ width: '100%', ...field.style }}
+            className={baseInputClass}
           >
             {field.options.map(option => (
               <option key={option.value} value={option.value}>
@@ -60,7 +71,7 @@ export const BaseNode = ({ id, data, config }) => {
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             rows={field.rows || 3}
-            style={{ width: '100%', resize: 'vertical', ...field.style }}
+            className={`${baseInputClass} resize-none`}
           />
         );
 
@@ -74,7 +85,7 @@ export const BaseNode = ({ id, data, config }) => {
             min={field.min}
             max={field.max}
             step={field.step}
-            style={{ width: '100%', ...field.style }}
+            className={baseInputClass}
           />
         );
 
@@ -84,7 +95,7 @@ export const BaseNode = ({ id, data, config }) => {
             type="checkbox"
             checked={value}
             onChange={(e) => handleFieldChange(field.name, e.target.checked)}
-            style={field.style}
+            className="w-4 h-4 text-[#3B82F6] border-[#E5E7EB] rounded focus:ring-[#3B82F6]"
           />
         );
 
@@ -97,103 +108,98 @@ export const BaseNode = ({ id, data, config }) => {
   const renderHandles = () => {
     if (!config.handles) return null;
 
-    return config.handles.map((handle, index) => (
-      <Handle
-        key={`${handle.type}-${handle.id || index}`}
-        type={handle.type} // 'source' or 'target'
-        position={handle.position || (handle.type === 'source' ? Position.Right : Position.Left)}
-        id={`${id}-${handle.id || index}`}
-        style={handle.style || {}}
-        title={handle.label || ''}
-      />
-    ));
+    return config.handles.map((handle, index) => {
+      // Set color based on handle type: green for input (target), orange for output (source)
+      const handleColor = handle.type === 'target' ? '#10B981' : '#F59E0B';
+      
+      return (
+        <Handle
+          key={`${handle.type}-${handle.id || index}`}
+          type={handle.type} // 'source' or 'target'
+          position={handle.position || (handle.type === 'source' ? Position.Right : Position.Left)}
+          id={`${id}-${handle.id || index}`}
+          className={`w-2.5 h-2.5 border-2 border-white`}
+          style={{ 
+            backgroundColor: handleColor,
+            ...handle.style 
+          }}
+          title={handle.label || ''}
+        />
+      );
+    });
   };
 
-  // Default styles with ability to override
-  const defaultStyle = {
-    width: 200,
-    height: 80,
-    border: '1px solid black',
-    padding: '10px',
-    borderRadius: '5px',
-    background: 'white',
-  };
-
-  const nodeStyle = {
-    ...defaultStyle,
-    ...config.style,
-    ...(config.dynamicHeight && fieldValues[config.dynamicHeight.field]
-      ? { height: 'auto', minHeight: 80 }
-      : {})
-  };
+  // Get icon color based on config
+  const iconColor = config.iconColor || config.borderColor || '#3B82F6';
 
   return (
-    <div style={nodeStyle}>
+    <div
+      className={`bg-white border rounded-xl shadow-md transition-shadow ${selected ? 'border-[#3B82F6] shadow-lg' : 'border-[#E5E7EB]'}`}
+      style={{
+        minWidth: config.minWidth || 280,
+        width: config.width || 280,
+        minHeight: config.minHeight || 120
+      }}
+    >
       {/* Render all handles */}
       {renderHandles()}
 
-      {/* Node title/header */}
+      {/* Header Section */}
       {config.title && (
-        <div style={{
-          fontWeight: 'bold',
-          marginBottom: '8px',
-          fontSize: '14px',
-          ...config.titleStyle
-        }}>
-          {config.title}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB]">
+          <div className="flex items-center justify-center gap-2">
+            {config.Icon && <config.Icon size={16} strokeWidth={2} style={{ color: iconColor }} />}
+            <span className="font-semibold text-sm text-[#111827]">{config.title}</span>
+          </div>
+          <button
+            onClick={handleDelete}
+            className="p-1 hover:bg-[#FEE2E2] rounded transition-colors"
+            aria-label="Delete node"
+          >
+            <Trash2 size={16} className="text-red-500" />
+          </button>
         </div>
       )}
 
-      {/* Node description/subtitle */}
-      {config.description && (
-        <div style={{
-          fontSize: '11px',
-          color: '#666',
-          marginBottom: '8px',
-          ...config.descriptionStyle
-        }}>
-          {config.description}
-        </div>
-      )}
+      {/* Body Section */}
+      <div className="p-4 space-y-3">
+        {/* Node description/subtitle */}
+        {config.description && (
+          <div className="text-xs text-[#6B7280] -mt-1 mb-1">
+            {config.description}
+          </div>
+        )}
 
-      {/* Render all fields */}
-      {config.fields && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {config.fields.map(field => {
-            // Show variable name as label for auto-created inputs (e.g., "age:" instead of "Name:")
-            let displayLabel = field.label;
-            if (field.name === 'inputName') {
-              const value = data?.inputName || fieldValues[field.name];
-              if (value && value !== field.defaultValue) {
-                displayLabel = `${value}:`;
-              }
+        {/* Render all fields */}
+        {config.fields && config.fields.map(field => {
+          // Show variable name as label for auto-created inputs (e.g., "age:" instead of "Name:")
+          let displayLabel = field.label;
+          if (field.name === 'inputName') {
+            const value = data?.inputName || fieldValues[field.name];
+            if (data?.inputName && value && value !== field.defaultValue) {
+              displayLabel = `${value}:`;
             }
+          }
 
-            return (
-              <div key={field.name}>
-                {displayLabel && (
-                  <label style={{
-                    fontSize: '11px',
-                    display: 'block',
-                    marginBottom: '2px',
-                    fontWeight: '500'
-                  }}>
-                    {displayLabel}
-                  </label>
-                )}
-                {renderField(field)}
-              </div>
-            );
-          })}
-        </div>
-      )}
+          return (
+            <div key={field.name}>
+              {displayLabel && (
+                <label className="block text-xs font-medium text-[#6B7280] mb-1">
+                  {displayLabel}
+                </label>
+              )}
+              {renderField(field)}
+            </div>
+          );
+        })}
 
-      {/* Custom content area */}
-      {config.content && (
-        <div style={config.contentStyle}>
-          {config.content}
-        </div>
-      )}
+        {/* Custom content area */}
+        {config.content && (
+          <div>
+            {config.content}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

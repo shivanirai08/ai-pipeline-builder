@@ -65,17 +65,17 @@ export const PipelineUI = () => {
     const onDrop = useCallback(
         (event) => {
           event.preventDefault();
-    
+
           const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
           if (event?.dataTransfer?.getData('application/reactflow')) {
             const appData = JSON.parse(event.dataTransfer.getData('application/reactflow'));
             const type = appData?.nodeType;
-      
+
             // check if the dropped element is valid
             if (typeof type === 'undefined' || !type) {
               return;
             }
-      
+
             const position = reactFlowInstance.project({
               x: event.clientX - reactFlowBounds.left,
               y: event.clientY - reactFlowBounds.top,
@@ -88,7 +88,7 @@ export const PipelineUI = () => {
               position,
               data: getInitNodeData(nodeID, type),
             };
-      
+
             addNode(newNode);
           }
         },
@@ -101,8 +101,7 @@ export const PipelineUI = () => {
     }, []);
 
     return (
-        <>
-        <div ref={reactFlowWrapper} style={{width: '100wv', height: '70vh'}}>
+        <div ref={reactFlowWrapper} className="w-full h-full flex-1 bg-[#F9FAFB] relative">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -116,12 +115,47 @@ export const PipelineUI = () => {
                 proOptions={proOptions}
                 snapGrid={[gridSize, gridSize]}
                 connectionLineType='smoothstep'
+                defaultEdgeOptions={{
+                    animated: true,
+                    style: { stroke: '#94A3B8', strokeWidth: 2 }
+                }}
             >
-                <Background color="#aaa" gap={gridSize} />
-                <Controls />
-                <MiniMap />
+                <Background
+                    color="#a0a5acff"
+                    gap={gridSize}
+                    variant="dots"
+                    style={{ background: '#F9FAFB' }}
+                />
+                <Controls
+                    style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '8px'
+                    }}
+                />
+                <MiniMap
+                    nodeColor={(node) => {
+                        switch (node.type) {
+                            case 'customInput': return '#10B981';
+                            case 'customOutput': return '#F59E0B';
+                            case 'llm': return '#8B5CF6';
+                            case 'text': return '#3B82F6';
+                            case 'filter': return '#02551bff';
+                            case 'transform': return '#f64e3bff';
+                            case 'condition': return '#f63bd7ff';
+                            case 'aggregate': return '#cedb18ff';
+                            case 'api': return '#401eebff';
+                            default: return '#94A3B8';
+                        }
+                    }}
+                    style={{
+                        background: '#e6e6e6ff',
+                        border: '1px solid #e0e1e4ff',
+                        borderRadius: '8px'
+                    }}
+                    maskColor="rgba(249, 250, 251, 0.6)"
+                />
             </ReactFlow>
         </div>
-        </>
     )
 }
