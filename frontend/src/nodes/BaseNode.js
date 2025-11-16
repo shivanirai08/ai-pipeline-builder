@@ -160,11 +160,17 @@ export const BaseNode = ({ id, data, config }) => {
       {config.fields && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {config.fields.map(field => {
-            // Use the field's current value as label if it's 'inputName' (for auto-created Input nodes)
-            const fieldValue = fieldValues[field.name];
-            const displayLabel = field.name === 'inputName' && fieldValue
-              ? `${fieldValue}:`
-              : field.label;
+            // For 'inputName' field: use its value as the label if it's not the default
+            let displayLabel = field.label;
+
+            if (field.name === 'inputName') {
+              // Check data first (for initial render), then fieldValues (for updates)
+              const value = data?.inputName || fieldValues[field.name];
+              // Only use as label if it's not the default value and not empty
+              if (value && value !== 'input' && value !== field.defaultValue) {
+                displayLabel = `${value}:`;
+              }
+            }
 
             return (
               <div key={field.name}>

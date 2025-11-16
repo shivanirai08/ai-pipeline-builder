@@ -5,7 +5,7 @@
 // 3. Auto-create Input nodes for variables and connect them
 
 import { useState, useEffect, useRef } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { useStore } from '../store';
 
 export const TextNode = ({ id, data }) => {
@@ -13,6 +13,9 @@ export const TextNode = ({ id, data }) => {
   const [variables, setVariables] = useState([]);
   const textareaRef = useRef(null);
   const createdNodesRef = useRef({}); // Track which input nodes we've created
+
+  // Hook to update React Flow's internal node registry
+  const updateNodeInternals = useUpdateNodeInternals();
 
   // Access store for creating nodes and edges
   const nodes = useStore((state) => state.nodes);
@@ -44,16 +47,24 @@ export const TextNode = ({ id, data }) => {
     return nodes.find(node => node.id === id);
   };
 
-  // Auto-create Input nodes and connect them when variables change
+  // Step 1: Detect variables and update state (this triggers handle rendering)
   useEffect(() => {
     const detectedVars = extractVariables(currText);
     setVariables(detectedVars);
+    // Force React Flow to update its internal registry of this node's handles
+    // This must be called after the component re-renders with new handles
+    setTimeout(() => {
+      updateNodeInternals(id);
+    }, 0);
+  }, [currText, id, updateNodeInternals]);
 
+  // Step 2: Create Input nodes after variables state is updated and handles are rendered
+  useEffect(() => {
     const currentNode = getCurrentNode();
     if (!currentNode) return;
 
     // Create Input nodes for new variables
-    detectedVars.forEach((variable, index) => {
+    variables.forEach((variable, index) => {
       // Skip if we already created a node for this variable
       if (createdNodesRef.current[variable]) return;
 
@@ -78,20 +89,27 @@ export const TextNode = ({ id, data }) => {
       createdNodesRef.current[variable] = inputNodeId;
 
       // Create edge connecting Input node to Text node
-      // Small delay to ensure node is created before connecting
+      // Wait for both nodes to be fully registered by React Flow
+      // The Text node's handles are updated via updateNodeInternals in the first useEffect
+      // We just need to wait for the Input node to render and for React Flow to process
       setTimeout(() => {
-        onConnect({
-          source: inputNodeId,
-          sourceHandle: `${inputNodeId}-value`,
-          target: id,
-          targetHandle: `${id}-${variable}`
-        });
-      }, 100);
+        // Update internals for the newly created input node to register its handles
+        updateNodeInternals(inputNodeId);
+        // Small additional delay to ensure React Flow has processed the update
+        setTimeout(() => {
+          onConnect({
+            source: inputNodeId,
+            sourceHandle: `${inputNodeId}-value`,
+            target: id,
+            targetHandle: `${id}-${variable}`
+          });
+        }, 50);
+      }, 50);
     });
 
     // Remove tracking for deleted variables
     Object.keys(createdNodesRef.current).forEach(variable => {
-      if (!detectedVars.includes(variable)) {
+      if (!variables.includes(variable)) {
         const nodeIdToRemove = createdNodesRef.current[variable];
 
         // Remove the node
@@ -112,7 +130,7 @@ export const TextNode = ({ id, data }) => {
         delete createdNodesRef.current[variable];
       }
     });
-  }, [currText]);
+  }, [variables]); // Now depends on variables, not currText
 
   // Simple auto-resize: grow height up to 600px, then scroll
   useEffect(() => {
