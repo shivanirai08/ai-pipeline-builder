@@ -1,23 +1,16 @@
-// textNode.js
-// Enhanced Text Node with:
-// 1. Dynamic resizing based on content (natural overflow-based)
-// 2. Variable detection {{variableName}}
-// 3. Auto-create Input nodes for variables and connect them
+// Text Node: Detects {{variables}}, auto-creates Input nodes, and dynamically resizes textarea
 
 import { useState, useEffect, useRef } from 'react';
 import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { useStore } from '../store';
 
 export const TextNode = ({ id, data }) => {
-  const [currText, setCurrText] = useState(data?.text || '{{input}}');
+  const [currText, setCurrText] = useState(data?.text);
   const [variables, setVariables] = useState([]);
   const textareaRef = useRef(null);
-  const createdNodesRef = useRef({}); // Track which input nodes we've created
+  const createdNodesRef = useRef({});
 
-  // Hook to update React Flow's internal node registry
   const updateNodeInternals = useUpdateNodeInternals();
-
-  // Access store for creating nodes and edges
   const nodes = useStore((state) => state.nodes);
   const edges = useStore((state) => state.edges);
   const addNode = useStore((state) => state.addNode);
@@ -26,61 +19,46 @@ export const TextNode = ({ id, data }) => {
   const onNodesChange = useStore((state) => state.onNodesChange);
   const onEdgesChange = useStore((state) => state.onEdgesChange);
 
-  // Extract variables from text using regex
-  // Matches valid JavaScript variable names: {{variableName}}
+  // Extract unique variables matching {{variableName}} pattern
   const extractVariables = (text) => {
-    // Regex: matches {{ followed by valid JS variable name followed by }}
     const regex = /\{\{([a-zA-Z_$][a-zA-Z0-9_$]*)\}\}/g;
     const vars = [];
     let match;
-
     while ((match = regex.exec(text)) !== null) {
-      vars.push(match[1]); // match[1] is the captured variable name
+      vars.push(match[1]);
     }
-
-    // Return unique variables only (no duplicates)
     return [...new Set(vars)];
   };
 
-  // Get current text node position
-  const getCurrentNode = () => {
-    return nodes.find(node => node.id === id);
-  };
+  const getCurrentNode = () => nodes.find(node => node.id === id);
 
-  // Step 1: Detect variables and update state (this triggers handle rendering)
+  // Detect variables and register handles with React Flow
   useEffect(() => {
     const detectedVars = extractVariables(currText);
     setVariables(detectedVars);
-    // Force React Flow to update its internal registry of this node's handles
-    // This must be called after the component re-renders with new handles
-    setTimeout(() => {
-      updateNodeInternals(id);
-    }, 0);
+    setTimeout(() => updateNodeInternals(id), 0);
   }, [currText, id, updateNodeInternals]);
 
-  // Step 2: Create Input nodes after variables state is updated and handles are rendered
+  // Auto-create Input nodes for detected variables
   useEffect(() => {
     const currentNode = getCurrentNode();
     if (!currentNode) return;
 
-    // Create Input nodes for new variables
     variables.forEach((variable, index) => {
-      // Skip if we already created a node for this variable
       if (createdNodesRef.current[variable]) return;
 
-      // Create new Input node
       const inputNodeId = getNodeID('customInput');
       const inputNode = {
         id: inputNodeId,
         type: 'customInput',
         position: {
-          x: currentNode.position.x - 300, // Position to the left
-          y: currentNode.position.y + (index * 100) // Stack vertically
+          x: currentNode.position.x - 300,
+          y: currentNode.position.y + (index * 100)
         },
         data: {
           id: inputNodeId,
           nodeType: 'customInput',
-          inputName: variable, // Set the variable name as the input name
+          inputName: variable,
           inputType: 'Text'
         }
       };
@@ -88,14 +66,9 @@ export const TextNode = ({ id, data }) => {
       addNode(inputNode);
       createdNodesRef.current[variable] = inputNodeId;
 
-      // Create edge connecting Input node to Text node
-      // Wait for both nodes to be fully registered by React Flow
-      // The Text node's handles are updated via updateNodeInternals in the first useEffect
-      // We just need to wait for the Input node to render and for React Flow to process
+      // Connect Input node to Text node after React Flow registers both nodes
       setTimeout(() => {
-        // Update internals for the newly created input node to register its handles
         updateNodeInternals(inputNodeId);
-        // Small additional delay to ensure React Flow has processed the update
         setTimeout(() => {
           onConnect({
             source: inputNodeId,
@@ -107,18 +80,12 @@ export const TextNode = ({ id, data }) => {
       }, 50);
     });
 
-    // Remove tracking for deleted variables
+    // Clean up deleted variables
     Object.keys(createdNodesRef.current).forEach(variable => {
       if (!variables.includes(variable)) {
         const nodeIdToRemove = createdNodesRef.current[variable];
+        onNodesChange([{ id: nodeIdToRemove, type: 'remove' }]);
 
-        // Remove the node
-        onNodesChange([{
-          id: nodeIdToRemove,
-          type: 'remove'
-        }]);
-
-        // Remove edges connected to this node
         const edgesToRemove = edges
           .filter(edge => edge.source === nodeIdToRemove || edge.target === nodeIdToRemove)
           .map(edge => ({ id: edge.id, type: 'remove' }));
@@ -130,29 +97,16 @@ export const TextNode = ({ id, data }) => {
         delete createdNodesRef.current[variable];
       }
     });
-  }, [variables]); // Now depends on variables, not currText
+  }, [variables]);
 
-  // Simple auto-resize: grow height up to 600px, then scroll
+  // Auto-resize textarea: grow up to 600px, then scroll
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
-      // Set height to 1px temporarily to get accurate scrollHeight
-      // This prevents the jumping issue
-      textarea.style.height = '1px';
-
-      // Get the actual content height
-      const scrollHeight = textarea.scrollHeight;
-
-      // Set height to content height, max 600px
-      const newHeight = Math.min(scrollHeight, 600);
+      textarea.style.height = '1px'; // Reset to measure accurately
+      const newHeight = Math.min(textarea.scrollHeight, 600);
       textarea.style.height = `${newHeight}px`;
-
-      // Enable scroll if content exceeds 600px
-      if (scrollHeight > 600) {
-        textarea.style.overflowY = 'auto';
-      } else {
-        textarea.style.overflowY = 'hidden';
-      }
+      textarea.style.overflowY = newHeight === 600 ? 'auto' : 'hidden';
     }
   }, [currText]);
 
@@ -172,9 +126,8 @@ export const TextNode = ({ id, data }) => {
         position: 'relative'
       }}
     >
-      {/* Dynamic handles for variables - positioned on the left */}
+      {/* Input handles for each variable */}
       {variables.map((variable, index) => {
-        // Calculate position to distribute handles evenly
         const topPosition = ((index + 1) / (variables.length + 1)) * 100;
         return (
           <Handle
@@ -186,12 +139,11 @@ export const TextNode = ({ id, data }) => {
               top: `${topPosition}%`,
               background: '#555'
             }}
-            title={variable} // Tooltip showing variable name
+            title={variable}
           />
         );
       })}
 
-      {/* Node title */}
       <div style={{
         fontWeight: 'bold',
         marginBottom: '8px',
@@ -199,8 +151,6 @@ export const TextNode = ({ id, data }) => {
       }}>
         Text
       </div>
-
-      {/* Text input area */}
       <div style={{ marginBottom: '8px' }}>
         <label style={{
           fontSize: '11px',
@@ -229,7 +179,6 @@ export const TextNode = ({ id, data }) => {
         />
       </div>
 
-      {/* Display detected variables */}
       {variables.length > 0 && (
         <div style={{
           fontSize: '10px',
@@ -243,7 +192,7 @@ export const TextNode = ({ id, data }) => {
         </div>
       )}
 
-      {/* Output handle - always on the right */}
+      {/* Output handle */}
       <Handle
         type="source"
         position={Position.Right}
