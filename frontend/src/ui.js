@@ -10,6 +10,12 @@ import { InputNode } from './nodes/inputNode';
 import { LLMNode } from './nodes/llmNode';
 import { OutputNode } from './nodes/outputNode';
 import { TextNode } from './nodes/textNode';
+// New nodes using the abstraction
+import { FilterNode } from './nodes/filterNode';
+import { TransformNode } from './nodes/transformNode';
+import { ConditionNode } from './nodes/conditionNode';
+import { AggregateNode } from './nodes/aggregateNode';
+import { ApiNode } from './nodes/apiNode';
 
 import 'reactflow/dist/style.css';
 
@@ -20,6 +26,12 @@ const nodeTypes = {
   llm: LLMNode,
   customOutput: OutputNode,
   text: TextNode,
+  // New node types
+  filter: FilterNode,
+  transform: TransformNode,
+  condition: ConditionNode,
+  aggregate: AggregateNode,
+  api: ApiNode,
 };
 
 const selector = (state) => ({
