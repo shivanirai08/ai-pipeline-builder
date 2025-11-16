@@ -159,21 +159,29 @@ export const BaseNode = ({ id, data, config }) => {
       {/* Render all fields */}
       {config.fields && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {config.fields.map(field => (
-            <div key={field.name}>
-              {field.label && (
-                <label style={{
-                  fontSize: '11px',
-                  display: 'block',
-                  marginBottom: '2px',
-                  fontWeight: '500'
-                }}>
-                  {field.label}
-                </label>
-              )}
-              {renderField(field)}
-            </div>
-          ))}
+          {config.fields.map(field => {
+            // Use the field's current value as label if it's 'inputName' (for auto-created Input nodes)
+            const fieldValue = fieldValues[field.name];
+            const displayLabel = field.name === 'inputName' && fieldValue
+              ? `${fieldValue}:`
+              : field.label;
+
+            return (
+              <div key={field.name}>
+                {displayLabel && (
+                  <label style={{
+                    fontSize: '11px',
+                    display: 'block',
+                    marginBottom: '2px',
+                    fontWeight: '500'
+                  }}>
+                    {displayLabel}
+                  </label>
+                )}
+                {renderField(field)}
+              </div>
+            );
+          })}
         </div>
       )}
 
