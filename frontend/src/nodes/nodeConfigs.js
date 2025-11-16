@@ -1,11 +1,14 @@
 // nodeConfigs.js
 // Declarative node configurations - adding a new node is now just defining a config object.
-// This demonstrates the power and flexibility of the BaseNode abstraction
 
 import { Position } from 'reactflow';
+import { FileInput, Brain, FileOutput, Type, Filter, Shuffle, GitBranch, BarChart3, Globe } from 'lucide-react';
 
 export const inputNodeConfig = {
   title: 'Input',
+  Icon: FileInput,
+  iconColor: '#10B981',
+  borderColor: '#10B981',
   fields: [
     {
       name: 'inputName',
@@ -36,6 +39,9 @@ export const inputNodeConfig = {
 
 export const outputNodeConfig = {
   title: 'Output',
+  Icon: FileOutput,
+  iconColor: '#F59E0B',
+  borderColor: '#F59E0B',
   fields: [
     {
       name: 'outputName',
@@ -66,7 +72,10 @@ export const outputNodeConfig = {
 
 export const llmNodeConfig = {
   title: 'LLM',
-  description: 'This is a LLM.',
+  Icon: Brain,
+  description: 'Large Language Model',
+  iconColor: '#8B5CF6',
+  borderColor: '#8B5CF6',
   handles: [
     {
       type: 'target',
@@ -93,6 +102,9 @@ export const llmNodeConfig = {
 
 export const textNodeConfig = {
   title: 'Text',
+  Icon: Type,
+  iconColor: '#3B82F6',
+  borderColor: '#3B82F6',
   fields: [
     {
       name: 'text',
@@ -111,17 +123,17 @@ export const textNodeConfig = {
   ]
 };
 
-// 5 NEW NODE CONFIGURATIONS
+// 5 ADDITIONAL NODE CONFIGURATIONS
 
 // 1. Filter Node - Filters data based on conditions
 export const filterNodeConfig = {
   title: 'Filter',
+  Icon: Filter,
   description: 'Filter data based on conditions',
-  style: {
-    width: 220,
-    height: 140,
-    background: '#f0f9ff'
-  },
+  iconColor: '#02551bff',
+  borderColor: '#02551bff',
+  width: 280,
+  minHeight: 140,
   fields: [
     {
       name: 'condition',
@@ -170,12 +182,12 @@ export const filterNodeConfig = {
 // 2. Transform Node - Transforms/processes data
 export const transformNodeConfig = {
   title: 'Transform',
+  Icon: Shuffle,
   description: 'Transform data',
-  style: {
-    width: 220,
-    height: 130,
-    background: '#fef3c7'
-  },
+  iconColor: '#f64e3bff',
+  borderColor: '#f64e3bff',
+  width: 280,
+  minHeight: 130,
   fields: [
     {
       name: 'operation',
@@ -210,12 +222,12 @@ export const transformNodeConfig = {
 // 3. Condition Node - Branching logic (if/else)
 export const conditionNodeConfig = {
   title: 'Condition',
+  Icon: GitBranch,
   description: 'If/Else branching logic',
-  style: {
-    width: 240,
-    height: 150,
-    background: '#fce7f3'
-  },
+  iconColor: '#f63bd7ff',
+  borderColor: '#f63bd7ff',
+  width: 280,
+  minHeight: 150,
   fields: [
     {
       name: 'condition',
@@ -252,12 +264,12 @@ export const conditionNodeConfig = {
 // 4. Aggregate Node - Combines multiple inputs
 export const aggregateNodeConfig = {
   title: 'Aggregate',
+  Icon: BarChart3,
   description: 'Combine multiple inputs',
-  style: {
-    width: 220,
-    height: 160,
-    background: '#e0e7ff'
-  },
+  iconColor: '#cedb18ff',
+  borderColor: '#cedb18ff',
+  width: 280,
+  minHeight: 160,
   fields: [
     {
       name: 'operation',
@@ -313,12 +325,12 @@ export const aggregateNodeConfig = {
 // 5. API Node - Makes external API calls
 export const apiNodeConfig = {
   title: 'API Call',
+  Icon: Globe,
   description: 'External API request',
-  style: {
-    width: 240,
-    height: 180,
-    background: '#d1fae5'
-  },
+  iconColor: '#401eebff',
+  borderColor: '#401eebff',
+  width: 280,
+  minHeight: 180,
   fields: [
     {
       name: 'method',
