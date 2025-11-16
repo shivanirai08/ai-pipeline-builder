@@ -8,7 +8,7 @@ app = FastAPI()
 # CORS configuration to allow frontend requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,17 +25,12 @@ def read_root():
 
 @app.post('/pipelines/parse')
 def parse_pipeline(pipeline: PipelineData):
-    """
-    Parse pipeline and validate if it forms a DAG.
-    Returns: {num_nodes: int, num_edges: int, is_dag: bool}
-    """
+    """Validate pipeline and return: {num_nodes, num_edges, is_dag}"""
     nodes = pipeline.nodes
     edges = pipeline.edges
 
     num_nodes = len(nodes)
     num_edges = len(edges)
-
-    # Check if the graph is a DAG (Directed Acyclic Graph)
     is_dag = is_directed_acyclic_graph(nodes, edges)
 
     return {
@@ -45,11 +40,7 @@ def parse_pipeline(pipeline: PipelineData):
     }
 
 def is_directed_acyclic_graph(nodes: List[Dict], edges: List[Dict]) -> bool:
-    """
-    Check if the graph formed by nodes and edges is a DAG.
-    Uses DFS with recursion stack to detect cycles.
-    """
-    # Build adjacency list
+    """Check if graph is a DAG using DFS cycle detection"""
     graph = {node['id']: [] for node in nodes}
 
     for edge in edges:
@@ -58,34 +49,28 @@ def is_directed_acyclic_graph(nodes: List[Dict], edges: List[Dict]) -> bool:
         if source in graph and target in graph:
             graph[source].append(target)
 
-    # Track visited nodes and nodes in current recursion stack
     visited = set()
     rec_stack = set()
 
     def has_cycle(node_id: str) -> bool:
-        """DFS to detect cycle"""
+        """DFS with recursion stack to detect cycles"""
         visited.add(node_id)
         rec_stack.add(node_id)
 
-        # Check all neighbors
         for neighbor in graph.get(node_id, []):
-            # If neighbor not visited, recurse
             if neighbor not in visited:
                 if has_cycle(neighbor):
                     return True
-            # If neighbor is in recursion stack, we found a cycle
             elif neighbor in rec_stack:
                 return True
 
-        # Remove from recursion stack before returning
         rec_stack.remove(node_id)
         return False
 
-    # Check for cycles starting from each unvisited node
     for node in nodes:
         node_id = node['id']
         if node_id not in visited:
             if has_cycle(node_id):
-                return False  # Found a cycle, not a DAG
+                return False
 
-    return True  # No cycles found, it's a DAG
+    return True
